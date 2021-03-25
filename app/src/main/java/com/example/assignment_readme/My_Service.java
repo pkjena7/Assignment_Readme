@@ -11,6 +11,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.SystemClock;
+import android.util.Log;
 import android.widget.TextView;
 
 import androidx.annotation.Nullable;
@@ -18,6 +19,8 @@ import androidx.core.app.NotificationCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -25,18 +28,15 @@ import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
+import static android.content.ContentValues.TAG;
+
 public class My_Service extends Service {
 
     Context context;
-    Handler handler = new Handler();
-    private Runnable periodicUpdate = new Runnable() {
-        @Override
-        public void run() {
-            handler.postDelayed(periodicUpdate, 20 * 1000 - SystemClock.elapsedRealtime() % 1000);
-            callApi();
-        }
-    };
-
+    Timer timer;
+    TimerTask timerTask;
+    int Your_X_SECS = 20;
+    final Handler handler = new Handler();
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
 
@@ -70,19 +70,41 @@ public class My_Service extends Service {
 
         return START_STICKY;
     }
+    public void startTimer() {
+        timer = new Timer();
+        initializeTimerTask();
+        timer.schedule(timerTask, 5 * 1000, Your_X_SECS * 500);
+    }
+    public void initializeTimerTask() {
+        timerTask = new TimerTask() {
+            public void run() {
+                handler.post(new Runnable() {
+                    public void run() {
+                        Log.d(TAG, "run: call");
+                        callApi();
+                    }
+                });
+            }
+        };
+    }
+    public void stopTimerTask() {
+        if (timer != null) {
+            timer.cancel();
+            timer = null;
+        }
+    }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
-        stopDataFetch();
+        stopTimerTask();
     }
 
     @Override
     public void onCreate() {
-        super.onCreate();
         context = this;
-        startDataFetch();
-
+        startTimer();
+        super.onCreate();
     }
 
     @Nullable
@@ -91,42 +113,34 @@ public class My_Service extends Service {
         return null;
     }
 
-
-    public void startDataFetch() {
-        //start timer for api call in 2 min interval
-    }
-
-
-    public void stopDataFetch() {
-        //stop timer
-    }
-
     public void callApi() {
         Retrofit retrofit = new Retrofit.Builder().baseUrl("http://ip-api.com/")
                 .addConverterFactory(GsonConverterFactory.create()).build();
 
         JsonPlaceHolderApi jsonPlaceHolderApi = retrofit.create(JsonPlaceHolderApi.class);
 
-        Call<String> call = jsonPlaceHolderApi.getPost();
+        Call<Data> call = jsonPlaceHolderApi.getPost();
 
-        call.enqueue(new Callback<String>() {
+        call.enqueue(new Callback<Data>() {
             @Override
-            public void onResponse(Call<String> call, Response<String> response) {
+            public void onResponse(Call<Data> call, Response<Data> response) {
                 if (!response.isSuccessful()) {
 //                    textViewResult.setText("Code "+response.code());
                     return;
                 }
 
-                String posts = response.body();
-                Intent intent = new Intent("Api Data");
-                intent.putExtra("status", posts);
+                Log.d(TAG, "onResponse: "+response.body());
+                Data posts = response.body();
+                Intent intent = new Intent("API_DATA");
+                intent.putExtra("ip", posts.getQuery());
+                intent.putExtra("timezone", posts.getTimezone());
                 LocalBroadcastManager.getInstance(context).sendBroadcast(intent);
 
             }
 
             @Override
-            public void onFailure (Call < String > call, Throwable t){
-                return;
+            public void onFailure (Call < Data > call, Throwable t){
+                t.printStackTrace();
             }
         });
 

@@ -11,6 +11,7 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
+        android:usesCleartextTraffic="true"
         android:theme="@style/Theme.Assignment_Readme">
         <activity android:name=".MainActivity">
             <intent-filter>
@@ -20,7 +21,7 @@
             </intent-filter>
         </activity>
 
-        <service android:name=".service.My_Service" />
+        <service android:name=".My_Service" />
     </application>
 
 </manifest>

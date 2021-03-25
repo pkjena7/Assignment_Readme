@@ -35,7 +35,7 @@ public class MainActivity extends AppCompatActivity {
         textView = findViewById(R.id.textview);
 
         LocalBroadcastManager.getInstance(this).registerReceiver(mMessageReceiver,
-                new IntentFilter("data-loaded"));
+                new IntentFilter("API_DATA"));
 
 
         context = this;
@@ -60,12 +60,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void startService() {
-
-
-        String input = textView.getText().toString();
         Intent serviceIntent = new Intent(MainActivity.this, My_Service.class);
-        serviceIntent.putExtra("input extra", input);
-
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             startForegroundService(serviceIntent);
         } else {
@@ -85,15 +80,20 @@ public class MainActivity extends AppCompatActivity {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    if(intent.hasExtra("Api Data")){
-                        Bundle bundle = new Bundle();
-                        bundle = intent.getExtras();
-
-                        textView.setText(bundle.toString());
-                    }
+                    StringBuilder data = new StringBuilder();
+                    data.append(intent.getStringExtra("timezone"));
+                    data.append(":");
+                    data.append(intent.getStringExtra("ip"));
+                    textView.setText(data.toString());
                 }
             });
 
         }
     };
+
+    @Override
+    protected void onDestroy() {
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(mMessageReceiver);
+        super.onDestroy();
+    }
 }
